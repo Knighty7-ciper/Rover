@@ -166,20 +166,20 @@
 All endpoints follow consistent patterns:
 
 **Success Response:**
-```json
+\`\`\`json
 {
   "data": { ...entity_data... },
   "success": true
 }
-```
+\`\`\`
 
 **Error Response:**
-```json
+\`\`\`json
 {
   "error": "Error description",
   "success": false
 }
-```
+\`\`\`
 
 **Pagination Support:**
 - `limit` parameter for page size

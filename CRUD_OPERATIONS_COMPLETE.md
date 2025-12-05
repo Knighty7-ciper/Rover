@@ -197,23 +197,23 @@ Based on the DFDs, the ROVER platform includes these core modules:
 All endpoints return consistent JSON responses:
 
 **Success Response:**
-```json
+\`\`\`json
 {
   "data": { ... },
   "success": true
 }
-```
+\`\`\`
 
 **Error Response:**
-```json
+\`\`\`json
 {
   "error": "Error message",
   "success": false
 }
-```
+\`\`\`
 
 **Pagination Support:**
-```json
+\`\`\`json
 {
   "data": [...],
   "success": true,
@@ -223,7 +223,7 @@ All endpoints return consistent JSON responses:
     "total": 150
   }
 }
-```
+\`\`\`
 
 ## Integration Points
 
