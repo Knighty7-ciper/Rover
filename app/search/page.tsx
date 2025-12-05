@@ -4,13 +4,14 @@ import { SearchResults } from "@/components/search/search-results"
 import { SearchInput } from "@/components/search/search-input"
 
 interface SearchPageProps {
-  searchParams: {
+  searchParams: Promise<{
     q?: string
-  }
+  }>
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const supabase = createClient()
+  const supabase = await createClient()
+  const params = await searchParams
 
   const {
     data: { user },
@@ -20,30 +21,26 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     redirect("/auth/login")
   }
 
-  const query = searchParams.q || ""
+  const query = params.q || ""
 
   // Get initial results if there's a query
   let initialResults = null
   if (query) {
     try {
       // This would normally be done client-side, but we can pre-load for better UX
-      const { data: profiles } = await supabase
-        .rpc("search_profiles", { search_term: query, limit_count: 10 })
+      const { data: profiles } = await supabase.rpc("search_profiles", { search_term: query, limit_count: 10 })
 
-      const { data: posts } = await supabase
-        .rpc("search_posts", { search_term: query, limit_count: 10 })
+      const { data: posts } = await supabase.rpc("search_posts", { search_term: query, limit_count: 10 })
 
-      const { data: projects } = await supabase
-        .rpc("search_projects", { search_term: query, limit_count: 10 })
+      const { data: projects } = await supabase.rpc("search_projects", { search_term: query, limit_count: 10 })
 
-      const { data: tags } = await supabase
-        .rpc("search_tags", { search_term: query, limit_count: 10 })
+      const { data: tags } = await supabase.rpc("search_tags", { search_term: query, limit_count: 10 })
 
       initialResults = {
         people: profiles || [],
         posts: posts || [],
         projects: projects || [],
-        tags: tags || []
+        tags: tags || [],
       }
     } catch (error) {
       console.error("Error preloading search results:", error)
@@ -56,18 +53,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-4">Search ROVER</h1>
         <div className="max-w-2xl">
-          <SearchInput 
-            placeholder="Search people, posts, projects, tags..."
-            className="w-full"
-          />
+          <SearchInput placeholder="Search people, posts, projects, tags..." className="w-full" />
         </div>
       </div>
 
       {/* Search Results */}
-      <SearchResults 
-        query={query}
-        initialResults={initialResults}
-      />
+      <SearchResults query={query} initialResults={initialResults} />
     </div>
   )
 }
