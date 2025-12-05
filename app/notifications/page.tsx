@@ -4,7 +4,7 @@ import { NotificationList } from "@/components/notifications/notification-list"
 import { NotificationsHeader } from "@/components/notifications/notifications-header"
 
 export default async function NotificationsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -34,16 +34,10 @@ export default async function NotificationsPage() {
 
   return (
     <div className="container mx-auto max-w-2xl py-8">
-      <NotificationsHeader 
-        unreadCount={unreadCount || 0}
-        userId={user.id}
-      />
-      
+      <NotificationsHeader unreadCount={unreadCount || 0} userId={user.id} />
+
       <div className="mt-6">
-        <NotificationList 
-          notifications={notifications || []}
-          userId={user.id}
-        />
+        <NotificationList notifications={notifications || []} userId={user.id} />
       </div>
     </div>
   )
