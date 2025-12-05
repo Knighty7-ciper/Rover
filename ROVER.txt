@@ -1,0 +1,413 @@
+================================================================================
+                          ROVER PLATFORM - TECHNICAL ANALYSIS
+                              Government Social Platform
+================================================================================
+
+Created: December 4, 2025
+Version: 1.0
+
+================================================================================
+                              PLATFORM OVERVIEW
+================================================================================
+
+ROVER is a government social platform for Kenya designed for officials to:
+- Share updates, milestones, and announcements
+- Connect and follow colleagues across departments
+- Direct message and group chat
+- Track government projects and budgets
+- Admin oversight with audit logging
+
+================================================================================
+                              DATABASE SCHEMA (19 TABLES)
+================================================================================
+
+AUTHENTICATION & USERS:
+-----------------------
+1. profiles
+   - id (uuid, PK, links to auth.users)
+   - email, full_name, role, department, title
+   - avatar_url, is_verified
+   - followers_count, following_count (auto-updated via trigger)
+   - created_at, updated_at
+
+FEED & POSTS:
+-------------
+2. posts
+   - id, user_id (FK → profiles)
+   - content, content_type (text/milestone/announcement)
+   - media_urls[], likes_count, comments_count
+   - is_pinned, created_at, updated_at
+
+3. comments
+   - id, post_id (FK → posts), user_id (FK → profiles)
+   - content, created_at, updated_at
+
+4. likes
+   - id, post_id (FK → posts), user_id (FK → profiles)
+   - created_at
+
+SOCIAL FEATURES:
+----------------
+5. tags
+   - id, name (unique), posts_count
+   - created_at
+
+6. post_tags
+   - id, post_id (FK → posts), tag_id (FK → tags)
+   - created_at
+
+7. mentions
+   - id, post_id (FK → posts), mentioned_user_id (FK → profiles)
+   - created_at
+
+8. follows
+   - id, follower_id, following_id (FK → profiles)
+   - created_at
+
+MESSAGING:
+----------
+9. conversations
+   - id, name, is_group
+   - created_by, last_message_at
+   - created_at, updated_at
+
+10. conversation_participants
+    - id, conversation_id (FK), user_id (FK)
+    - last_read_at, joined_at
+
+11. messages
+    - id, conversation_id (FK), sender_id (FK)
+    - content, is_read
+    - created_at, updated_at
+
+PROJECTS & MILESTONES:
+----------------------
+12. projects
+    - id, name, description, department
+    - lead_id (FK → profiles)
+    - status, priority
+    - budget_allocated, budget_spent
+    - start_date, target_end_date, actual_end_date
+    - progress_percentage, created_at, updated_at
+
+13. milestones
+    - id, project_id (FK), title, description
+    - status, target_date, completed_date
+    - progress_percentage, order_index
+    - created_at, updated_at
+
+14. project_updates
+    - id, project_id (FK), milestone_id (FK nullable)
+    - author_id (FK), title, content, update_type
+    - media_urls[], created_at
+
+15. project_members
+    - id, project_id (FK), user_id (FK)
+    - role (lead/member/stakeholder/observer)
+    - joined_at
+
+16. budget_transactions
+    - id, project_id (FK)
+    - amount, transaction_type, description
+    - receipt_url, recorded_by, transaction_date
+    - created_at
+
+ADMIN:
+------
+17. reports
+    - id, reporter_id, reported_user_id, reported_post_id
+    - reason, details, status
+    - reviewed_by, reviewed_at, created_at
+
+18. audit_logs
+    - id, user_id, action
+    - entity_type, entity_id, details (jsonb)
+    - ip_address, user_agent, created_at
+
+19. system_settings
+    - id, key, value (jsonb)
+    - description, updated_by, updated_at
+
+================================================================================
+                              FILE STRUCTURE
+================================================================================
+
+app/
+├── page.tsx                    # Landing/redirect to feed or login
+├── layout.tsx                  # Root layout with fonts and theme
+├── globals.css                 # Design tokens and Tailwind config
+│
+├── auth/
+│   ├── login/page.tsx          # Login form
+│   ├── sign-up/page.tsx        # Registration form
+│   ├── sign-up-success/page.tsx # Email confirmation notice
+│   ├── error/page.tsx          # Auth error display
+│   └── signout/route.ts        # Sign out API route
+│
+├── feed/
+│   └── page.tsx                # Main feed with posts
+│
+├── directory/
+│   ├── page.tsx                # User directory with follow
+│   └── loading.tsx             # Loading skeleton
+│
+├── profile/
+│   └── [id]/page.tsx           # User profile view
+│
+├── messages/
+│   ├── page.tsx                # Conversation list
+│   └── [id]/page.tsx           # Conversation thread
+│
+├── projects/
+│   ├── page.tsx                # Projects list
+│   └── [id]/page.tsx           # Project detail view
+│
+├── tag/
+│   └── [name]/page.tsx         # Posts by hashtag
+│
+├── settings/                   # ❌ MISSING - 404 error
+│   └── page.tsx                # User settings
+│
+├── notifications/              # ❌ MISSING - Not implemented
+│   └── page.tsx                # Notifications center
+│
+└── admin/
+    ├── page.tsx                # Admin dashboard
+    ├── users/page.tsx          # User management
+    └── audit/page.tsx          # Audit log viewer
+
+components/
+├── rover-logo.tsx              # Platform logo SVG
+├── theme-provider.tsx          # Dark/light theme
+│
+├── auth/
+│   └── auth-card.tsx           # Auth form wrapper
+│
+├── feed/
+│   ├── feed-layout.tsx         # Main layout with sidebar
+│   ├── create-post.tsx         # Post composer
+│   ├── post-card.tsx           # Individual post display
+│   └── post-list.tsx           # Posts container
+│
+├── social/
+│   ├── mention-input.tsx       # @mention autocomplete input
+│   ├── rendered-content.tsx    # Render @mentions and #tags as links
+│   └── user-card.tsx           # User card with follow button
+│
+├── messages/
+│   ├── conversation-list.tsx   # List of conversations
+│   ├── message-thread.tsx      # Chat thread display
+│   └── new-conversation-dialog.tsx # Start new conversation
+│
+├── milestones/
+│   ├── project-card.tsx        # Project overview card
+│   ├── milestone-list.tsx      # Milestones timeline
+│   ├── create-project-dialog.tsx # New project form
+│   ├── add-milestone-dialog.tsx # New milestone form
+│   ├── budget-tracker.tsx      # Budget visualization
+│   └── project-updates.tsx     # Project activity feed
+│
+└── admin/
+    ├── admin-layout.tsx        # Admin page wrapper
+    ├── stats-cards.tsx         # Platform statistics
+    ├── user-management.tsx     # User table with actions
+    └── audit-log-table.tsx     # Audit log display
+
+lib/
+├── supabase/
+│   ├── client.ts               # Browser Supabase client
+│   ├── server.ts               # Server Supabase client
+│   └── proxy.ts                # Proxy configuration
+├── types.ts                    # TypeScript interfaces
+├── utils.ts                    # Utility functions (cn)
+└── utils/
+    └── mentions.tsx            # Mention parsing utilities
+
+scripts/
+├── 001_create_profiles.sql     # ✅ EXECUTED
+├── 002_create_posts_comments.sql # ✅ EXECUTED
+├── 003_create_social_features.sql # ✅ EXECUTED
+├── 004_create_messaging.sql    # ✅ EXECUTED
+├── 005_create_milestones.sql   # ✅ EXECUTED
+└── 006_create_admin.sql        # ✅ EXECUTED
+
+================================================================================
+                              ISSUE ANALYSIS
+================================================================================
+
+PRIORITY 1 - CRITICAL (Broken Core Features):
+----------------------------------------------
+
+1. ❌ SETTINGS PAGE - 404
+   Location: Navigation links to /settings
+   Fix: Create app/settings/page.tsx
+
+2. ❌ NOTIFICATIONS NOT WORKING
+   - No notifications table in database
+   - No notification generation on mentions
+   - No notification UI/page
+   Files needed:
+   - scripts/007_create_notifications.sql
+   - app/notifications/page.tsx
+   - components/notifications/notification-list.tsx
+   - Update create-post.tsx to create notifications on @mention
+
+3. ❌ TRENDING TOPICS - HARDCODED DUMMY DATA
+   Location: components/feed/feed-layout.tsx lines 95-103
+   Fix: Fetch from tags table, order by posts_count
+
+4. ❌ SUGGESTED CONNECTIONS - HARDCODED DUMMY DATA
+   Location: components/feed/feed-layout.tsx lines 105-120
+   Fix: Fetch profiles user doesn't follow
+
+5. ❌ MENTIONS NOT SAVED TO DATABASE
+   Location: components/feed/create-post.tsx
+   Issue: Posts are created but mentions table not populated
+   Fix: Parse @mentions from content, insert into mentions table
+
+6. ❌ TAGS NOT SAVED TO DATABASE
+   Location: components/feed/create-post.tsx
+   Issue: Posts are created but tags/post_tags not populated
+   Fix: Parse #tags from content, insert into tags and post_tags
+
+7. ❌ PROFILE LINK FROM @MENTION BROKEN
+   Location: components/social/rendered-content.tsx
+   Issue: Links to /profile/{username} but should be /profile/{user_id}
+   Fix: Look up user ID from mention, link correctly
+
+8. ❌ FOLLOW BUTTON ON PROFILE - NO API
+   Location: app/profile/[id]/page.tsx line 113
+   Issue: Posts to /api/follow/{id} which doesn't exist
+   Fix: Create server action or API route for follow
+
+PRIORITY 2 - IMPORTANT (Incomplete Features):
+---------------------------------------------
+
+9. ⚠️ SEARCH NOT FUNCTIONAL
+   Location: components/feed/feed-layout.tsx line 42
+   Location: app/directory/page.tsx line 34
+   Issue: Search inputs don't filter anything
+   Fix: Add search functionality with query params
+
+10. ⚠️ DIRECTORY SEARCH NOT FUNCTIONAL
+    Location: app/directory/page.tsx
+    Issue: Search input has no handler
+    Fix: Add search state and filter profiles
+
+11. ⚠️ POST SHARING NOT IMPLEMENTED
+    Location: components/feed/post-card.tsx line 136
+    Issue: Share button does nothing
+    Fix: Add share dialog or copy link
+
+12. ⚠️ POST OPTIONS MENU EMPTY
+    Location: components/feed/post-card.tsx line 110
+    Issue: "..." button has no dropdown
+    Fix: Add dropdown with edit/delete/report options
+
+PRIORITY 3 - ENHANCEMENTS:
+--------------------------
+
+13. ⚡ REAL-TIME NOTIFICATIONS BADGE
+    Location: components/feed/feed-layout.tsx line 47
+    Issue: Bell icon shows static red dot
+    Fix: Query unread notification count
+
+14. ⚡ USER AVATAR IMAGES
+    Issue: All avatars show initials only
+    Fix: Support avatar_url from profiles
+
+15. ⚡ MEDIA UPLOADS
+    Location: components/feed/create-post.tsx
+    Issue: No file upload implementation
+    Fix: Add Supabase storage integration
+
+================================================================================
+                              FIX PRIORITY ORDER
+================================================================================
+
+Phase 1: Core Feed & Posts (This Session)
+------------------------------------------
+[1] Create Settings Page
+[2] Fix Trending Topics (real data from tags)
+[3] Fix Suggested Connections (real data from profiles)
+[4] Save mentions to database on post create
+[5] Save tags to database on post create
+[6] Create notifications table & system
+[7] Fix @mention links to use user ID
+[8] Fix follow button on profile page
+
+Phase 2: Social Features (Next)
+-------------------------------
+[9] Implement search (global and directory)
+[10] Add post options menu (edit/delete/report)
+[11] Implement share functionality
+
+Phase 3: Enhancements (Later)
+-----------------------------
+[12] Real-time notification count
+[13] Avatar image upload
+[14] Media upload for posts
+
+================================================================================
+                              FEATURE → FILE MAPPING
+================================================================================
+
+AUTHENTICATION:
+- Login: app/auth/login/page.tsx, components/auth/auth-card.tsx
+- Signup: app/auth/sign-up/page.tsx
+- Signout: app/auth/signout/route.ts
+- Database: profiles table
+
+FEED & POSTS:
+- Feed: app/feed/page.tsx, components/feed/feed-layout.tsx
+- Create Post: components/feed/create-post.tsx
+- View Posts: components/feed/post-list.tsx, components/feed/post-card.tsx
+- Database: posts, likes, comments tables
+
+SOCIAL - MENTIONS:
+- Input: components/social/mention-input.tsx
+- Display: components/social/rendered-content.tsx
+- Database: mentions table
+
+SOCIAL - TAGS:
+- Display: components/social/rendered-content.tsx
+- Tag Page: app/tag/[name]/page.tsx
+- Database: tags, post_tags tables
+
+SOCIAL - FOLLOWS:
+- User Card: components/social/user-card.tsx
+- Profile: app/profile/[id]/page.tsx
+- Directory: app/directory/page.tsx
+- Database: follows table
+
+MESSAGING:
+- List: app/messages/page.tsx, components/messages/conversation-list.tsx
+- Thread: app/messages/[id]/page.tsx, components/messages/message-thread.tsx
+- New: components/messages/new-conversation-dialog.tsx
+- Database: conversations, conversation_participants, messages tables
+
+PROJECTS:
+- List: app/projects/page.tsx
+- Detail: app/projects/[id]/page.tsx
+- Components: components/milestones/*
+- Database: projects, milestones, project_updates, project_members, budget_transactions
+
+ADMIN:
+- Dashboard: app/admin/page.tsx
+- Users: app/admin/users/page.tsx
+- Audit: app/admin/audit/page.tsx
+- Components: components/admin/*
+- Database: reports, audit_logs, system_settings
+
+NOTIFICATIONS (TO BE CREATED):
+- Page: app/notifications/page.tsx
+- Components: components/notifications/*
+- Database: notifications table (to be created)
+
+SETTINGS (TO BE CREATED):
+- Page: app/settings/page.tsx
+- Components: components/settings/*
+
+================================================================================
+                              END OF ANALYSIS
+================================================================================

@@ -217,3 +217,29 @@ export interface PlatformStats {
   posts_today: number
   pending_reports: number
 }
+
+export interface Notification {
+  id: string
+  user_id: string
+  actor_id: string | null
+  type: "like" | "comment" | "mention" | "follow" | "message" | "project_update" | "milestone_complete"
+  title: string
+  message: string
+  entity_type: string | null
+  entity_id: string | null
+  is_read: boolean
+  created_at: string
+  updated_at: string
+  actor?: Profile
+}
+
+// Utility types for notification operations
+export interface CreateNotificationInput {
+  user_id: string
+  actor_id?: string
+  type: Notification["type"]
+  title: string
+  message: string
+  entity_type?: string
+  entity_id?: string
+}
